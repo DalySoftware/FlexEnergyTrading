@@ -36,6 +36,7 @@ pytz = "*"
 pywin32 = "*"
 pyzmq = "*"
 six = "*"
+pandas-ta = "*"
 
 [dev-packages]
 
