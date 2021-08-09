@@ -1,0 +1,9 @@
+{
+    "python.pythonPath": ".venv\\Scripts\\python.exe",
+    "code-runner.executorMap": {
+        "python": ".venv\\Scripts\\python.exe"
+    },
+    // "mypy.dmypyExecutable": ".venv\\Scripts\\mypy.exe",
+    "mypy.runUsingActiveInterpreter": true,
+    "python.languageServer": "Pylance"
+}
