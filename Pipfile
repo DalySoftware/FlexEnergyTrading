@@ -37,6 +37,8 @@ pywin32 = "*"
 pyzmq = "*"
 six = "*"
 pandas-ta = "*"
+matplotlib = "*"
+mpl-finance = "*"
 
 [dev-packages]
 
