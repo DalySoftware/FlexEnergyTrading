@@ -1,5 +1,5 @@
-import pandas as pd  # type: ignore
-from pandas.core.frame import DataFrame  # type: ignore
+import pandas as pd
+from pandas.core.frame import DataFrame
 import pandas_ta as ta  # type: ignore
 from datetime import datetime
 
@@ -26,7 +26,7 @@ class NaturalGasDataProvider:
 
         df = df[["Date", "Open", "High", "Low", "Close", "Volume"]]
 
-        df.set_index("Date", inplace=True)
+        df.set_index("Date", inplace=True)  # type: ignore
         df.sort_index(inplace=True)
 
         # df.ta.log_return(cumulative=True, append=True)
