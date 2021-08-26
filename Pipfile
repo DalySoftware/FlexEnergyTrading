@@ -5,7 +5,6 @@ name = "pypi"
 
 [packages]
 mypy = "*"
-numpy = "*"
 pandas = "*"
 matplotlib = "*"
 ipykernel = "*"
@@ -16,6 +15,7 @@ pandas-ta = "*"
 mplfinance = "*"
 data-science-types = "*"
 tensorflow = "*"
+numpy = "*"
 
 [dev-packages]
 

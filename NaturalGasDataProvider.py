@@ -1,3 +1,4 @@
+from numpy.lib.function_base import append
 import pandas as pd
 from pandas.core.frame import DataFrame
 import pandas_ta as ta  # type: ignore
@@ -13,7 +14,7 @@ class NaturalGasDataProvider:
         return 1000 * float(vol_string.replace("K", ""))
 
     @classmethod
-    def get_data(cls) -> DataFrame:
+    def get_data(cls, add_ta_lib=False) -> DataFrame:
         df = pd.read_csv(
             ".\\InputData\\Natural Gas Futures Historical Data 1997 - 2021.csv")
         df["Date"] = df["Date"].apply(
@@ -36,8 +37,18 @@ class NaturalGasDataProvider:
         # df["GC"] = df.ta.sma(50, append=True) > df.ta.sma(200, append=True)
         # df.ta.tsignals(df.GC, asBool=True, append=True)
 
-        # df.ta.strategy(ta.AllStrategy)
-
-        # print(df.tail())
+        if (add_ta_lib):
+            df.ta.strategy(ta.AllStrategy, append=True)  # type: ignore
 
         return df
+
+
+def main():
+    data = NaturalGasDataProvider.get_data()
+
+    print(data.tail())
+    print(data.shape)
+
+
+if __name__ == '__main__':
+    main()

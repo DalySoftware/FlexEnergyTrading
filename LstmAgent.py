@@ -8,18 +8,16 @@ class LstmAgent:
     def get_model(number_of_timesteps: int, number_of_features: int) -> Model:
         prediction_model = Sequential()
 
-        LSTM_UNITS_PER_LAYER = 500
+        LSTM_IO_LAYER_UNITS = 100
+        LSTM_COMPRESSION_LAYER_UNITS = 20
 
-        prediction_model.add(LSTM(LSTM_UNITS_PER_LAYER, return_sequences=True, batch_input_shape=(
+        prediction_model.add(LSTM(LSTM_IO_LAYER_UNITS, return_sequences=True, batch_input_shape=(
             number_of_timesteps, 1, number_of_features)))
         prediction_model.add(Dropout(0.2))
         prediction_model.add(
-            LSTM(LSTM_UNITS_PER_LAYER, return_sequences=True))
+            LSTM(LSTM_COMPRESSION_LAYER_UNITS, return_sequences=True))
         prediction_model.add(Dropout(0.2))
-        prediction_model.add(
-            LSTM(LSTM_UNITS_PER_LAYER, return_sequences=True))
-        prediction_model.add(Dropout(0.2))
-        prediction_model.add(LSTM(LSTM_UNITS_PER_LAYER))
+        prediction_model.add(LSTM(LSTM_IO_LAYER_UNITS))
         prediction_model.add(Dropout(0.2))
         prediction_model.add(Dense(units=1))  # Prediction
 
