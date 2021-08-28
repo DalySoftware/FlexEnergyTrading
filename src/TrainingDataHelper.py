@@ -1,4 +1,3 @@
-from tensorflow.python.keras.engine import training
 from LstmAgent import LstmAgent
 from pandas.core.series import Series
 from sklearn.preprocessing import MinMaxScaler  # type: ignore
@@ -15,13 +14,11 @@ class TrainingDataHelper:
 
         min_max_scaler = MinMaxScaler()
 
-        # type: ignore
-        if (np.any(np.isnan(result[column]))):
-            result[column] = np.zeros(result[column].shape)
+        if (np.any(np.isnan(result[column]))):  # type: ignore
+            result[column] = np.zeros(result[column].shape)  # type: ignore
 
-        # type: ignore
-        if (not np.all(np.isfinite(result[column]))):
-            result[column] = np.zeros(result[column].shape)
+        if (not np.all(np.isfinite(result[column]))):   # type: ignore
+            result[column] = np.zeros(result[column].shape)  # type: ignore
 
         result[column] = min_max_scaler.fit_transform(
             result[column].values.reshape(-1, 1)
@@ -60,9 +57,6 @@ class TrainingDataHelper:
         x_copy["DiffFromGlobalMinScaled"] = min_scaler.fit_transform(
             x_copy["DiffFromGlobalMin"].values.reshape(-1, 1))
 
-        # x_copy["CloseScaled"] = min_scaler.fit_transform(
-        #     x_copy["Close"].values.reshape(-1, 1))
-
         y: DataFrame = x_copy.loc[:, ["DiffFromGlobalMinScaled"]]
 
         return x, y
@@ -70,6 +64,7 @@ class TrainingDataHelper:
     @staticmethod
     def plot_results(TRAINING_START_INDEX, TRADING_PERIOD_LENGTH,
                      BATCH_SIZE, EPOCHS,
+                     LSTM_IO_LAYER_UNITS, LSTM_COMPRESSION_LAYER_UNITS,
                      x_training_np_reshaped, y_training,
                      y_testing, y_predicted_on_testing_set,
                      model, loss_string,  use_shuffle, fit_history):
@@ -107,7 +102,9 @@ class TrainingDataHelper:
         convergence_plot.set_xlabel("Epoch")
         convergence_plot.legend(["Train", "Test"], loc="upper left")
 
-        info_text = f"Epochs: {EPOCHS}  " + \
+        info_text = f"LSTM Units Layers 1&3: {LSTM_IO_LAYER_UNITS}" + \
+                    f"\nLSTM Units Layer 2: {LSTM_COMPRESSION_LAYER_UNITS}" + \
+                    f"\nEpochs: {EPOCHS}  " + \
                     f"\nTraining Start Index: {TRAINING_START_INDEX}  " + \
                     f"\nTrading Period Length: {TRADING_PERIOD_LENGTH}" + \
                     f"\nBatch Size: {BATCH_SIZE}" + \
@@ -122,7 +119,7 @@ class TrainingDataHelper:
         plt.show()
 
 
-def main():
+def run_training():
     data = NaturalGasDataProvider.get_data(True)
 
     scaled = TrainingDataHelper.normalize_data(data)
@@ -132,7 +129,7 @@ def main():
     # scaled.to_csv("C:\\temp\\temp.csv")
 
     TRAINING_START_INDEX = 300
-    TRADING_PERIOD_LENGTH = 300
+    TRADING_PERIOD_LENGTH = 200
 
     y_training_scaler = MinMaxScaler()
 
@@ -149,6 +146,8 @@ def main():
 
     EPOCHS = 200
     BATCH_SIZE = 100
+    LSTM_IO_LAYER_UNITS = 100
+    LSTM_COMPRESSION_LAYER_UNITS = 20
 
     # BATCH_SIZE must divide TRADING_PERIOD_LENGTH with no remainder
     assert TRADING_PERIOD_LENGTH % BATCH_SIZE == 0
@@ -156,7 +155,8 @@ def main():
     # TRADING_PERIOD_LENGTH must be less than half of the overall data (given even split between training and testing)
     assert TRADING_PERIOD_LENGTH <= 0.5 * scaled.shape[0]
 
-    model = LstmAgent.get_model(BATCH_SIZE, x_training_np.shape[1])
+    model = LstmAgent.get_model(
+        BATCH_SIZE, x_training_np.shape[1], LSTM_IO_LAYER_UNITS, LSTM_COMPRESSION_LAYER_UNITS)
 
     # loss_string = "mean_squared_logarithmic_error"
     loss_string = "mean_squared_error"
@@ -189,10 +189,7 @@ def main():
 
     TrainingDataHelper.plot_results(TRAINING_START_INDEX, TRADING_PERIOD_LENGTH,
                                     BATCH_SIZE, EPOCHS,
+                                    LSTM_IO_LAYER_UNITS, LSTM_COMPRESSION_LAYER_UNITS,
                                     x_training_np_reshaped, y_training,
                                     y_testing, y_predicted_on_testing_set,
                                     model, loss_string, use_shuffle, history)
-
-
-if __name__ == '__main__':
-    main()
