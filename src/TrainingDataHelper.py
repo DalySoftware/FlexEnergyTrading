@@ -1,4 +1,5 @@
 from LstmAgent import LstmAgent
+from GruAgent import GruAgent
 from pandas.core.series import Series
 from sklearn.preprocessing import MinMaxScaler  # type: ignore
 from NaturalGasDataProvider import NaturalGasDataProvider
@@ -42,7 +43,9 @@ class TrainingDataHelper:
         return result
 
     @staticmethod
-    def get_x_y_data(scaled, start_index, length, min_scaler):
+    def get_x_y_data(scaled, start_index, length):
+        scaler = MinMaxScaler()
+
         x: DataFrame = scaled[start_index:start_index + length].copy()
 
         x["DaysLeftInWindow"] = np.flip(np.arange(length))
@@ -54,7 +57,7 @@ class TrainingDataHelper:
         x_copy["DiffFromGlobalMin"] = x_copy.loc[:, ["Close", "GlobalMin"]].apply(
             lambda row: row["Close"] - row["GlobalMin"], axis=1)
 
-        x_copy["DiffFromGlobalMinScaled"] = min_scaler.fit_transform(
+        x_copy["DiffFromGlobalMinScaled"] = scaler.fit_transform(
             x_copy["DiffFromGlobalMin"].values.reshape(-1, 1))
 
         y: DataFrame = x_copy.loc[:, ["DiffFromGlobalMinScaled"]]
@@ -63,8 +66,8 @@ class TrainingDataHelper:
 
     @staticmethod
     def plot_results(TRAINING_START_INDEX, TRADING_PERIOD_LENGTH,
-                     BATCH_SIZE, EPOCHS,
-                     LSTM_IO_LAYER_UNITS, LSTM_COMPRESSION_LAYER_UNITS,
+                     BATCH_SIZE, EPOCHS, AGENT_TYPE,
+                     IO_LAYER_UNITS, COMPRESSION_LAYER_UNITS,
                      x_training_np_reshaped, y_training,
                      y_testing, y_predicted_on_testing_set,
                      model, loss_string,  use_shuffle, fit_history):
@@ -80,21 +83,21 @@ class TrainingDataHelper:
         y_predicted_on_training_set = model.predict(
             x_training_np_reshaped, batch_size=BATCH_SIZE
         )
-        #types: ignore
+        # types: ignore
         training_plot.plot(x_values_for_plot, y_training,
                            x_values_for_plot, y_predicted_on_training_set)
-        training_plot.set_xlabel("Epoch")
+        training_plot.set_xlabel("Day")
         training_plot.set_title("Training Data")
         training_plot.legend(["Training", "Predicted"], loc="upper left")
 
-        #types: ignore
+        # types: ignore
         testing_plot.plot(x_values_for_plot, y_testing,
                           x_values_for_plot, y_predicted_on_testing_set)
-        testing_plot.set_xlabel("Epoch")
+        testing_plot.set_xlabel("Day")
         testing_plot.set_title("Testing Data")
         training_plot.legend(["Testing", "Predicted"], loc="upper left")
 
-        #types: ignore
+        # types: ignore
         convergence_plot.plot(fit_history.history["loss"])
         convergence_plot.plot(fit_history.history["val_loss"])
         convergence_plot.set_title("Loss")
@@ -102,8 +105,10 @@ class TrainingDataHelper:
         convergence_plot.set_xlabel("Epoch")
         convergence_plot.legend(["Train", "Test"], loc="upper left")
 
-        info_text = f"LSTM Units Layers 1&3: {LSTM_IO_LAYER_UNITS}" + \
-                    f"\nLSTM Units Layer 2: {LSTM_COMPRESSION_LAYER_UNITS}" + \
+        info_text = f"\nAgent Type: {AGENT_TYPE}" + \
+                    f"\nUnits Layer 1: {IO_LAYER_UNITS}" + \
+                    f"\nUnits Layer 2: {COMPRESSION_LAYER_UNITS}" + \
+                    f"\nUnits Layer 3: {IO_LAYER_UNITS}" + \
                     f"\nEpochs: {EPOCHS}  " + \
                     f"\nTraining Start Index: {TRAINING_START_INDEX}  " + \
                     f"\nTrading Period Length: {TRADING_PERIOD_LENGTH}" + \
@@ -118,6 +123,19 @@ class TrainingDataHelper:
 
         plt.show()
 
+    @staticmethod
+    def get_and_reshape_data(scaled, TRAINING_START_INDEX, TRADING_PERIOD_LENGTH):
+        x_training, y_training = TrainingDataHelper.get_x_y_data(
+            scaled, TRAINING_START_INDEX, TRADING_PERIOD_LENGTH)
+
+        x_training_np = np.array(x_training)
+        y_training_np = np.array(y_training)
+
+        x_training_np_reshaped = np.reshape(
+            x_training_np, (x_training_np.shape[0], 1, x_training_np.shape[1]))
+
+        return y_training, x_training_np, y_training_np, x_training_np_reshaped
+
 
 def run_training():
     data = NaturalGasDataProvider.get_data(True)
@@ -128,35 +146,33 @@ def run_training():
     # print(scaled[200:].tail())
     # scaled.to_csv("C:\\temp\\temp.csv")
 
+    TRADING_PERIOD_LENGTH = 1800
     TRAINING_START_INDEX = 300
-    TRADING_PERIOD_LENGTH = 200
+    TESTING_START_INDEX = TRAINING_START_INDEX + TRADING_PERIOD_LENGTH
+    EVALUATION_START_INDEX = TESTING_START_INDEX + TRADING_PERIOD_LENGTH
+    AVAILABLE_DATA_LENGTH = scaled.shape[0]
 
-    y_training_scaler = MinMaxScaler()
+    print(f'AVAILABLE_DATA_LENGTH: {AVAILABLE_DATA_LENGTH}')
 
-    x_training, y_training = TrainingDataHelper.get_x_y_data(
-        scaled, TRAINING_START_INDEX, TRADING_PERIOD_LENGTH, y_training_scaler)
+    y_training, x_training_np, y_training_np, x_training_np_reshaped = TrainingDataHelper.get_and_reshape_data(
+        scaled, TRAINING_START_INDEX, TRADING_PERIOD_LENGTH
+    )
 
-    x_training_np = np.array(x_training)
-    y_training_np = np.array(y_training)
-
-    assert x_training_np.shape[0] == TRADING_PERIOD_LENGTH
-
-    x_training_np_reshaped = np.reshape(
-        x_training_np, (x_training_np.shape[0], 1, x_training_np.shape[1]))
-
-    EPOCHS = 200
-    BATCH_SIZE = 100
-    LSTM_IO_LAYER_UNITS = 100
-    LSTM_COMPRESSION_LAYER_UNITS = 20
+    EPOCHS = 50
+    BATCH_SIZE = 300
+    IO_LAYER_UNITS = 100
+    COMPRESSION_LAYER_UNITS = 20
 
     # BATCH_SIZE must divide TRADING_PERIOD_LENGTH with no remainder
     assert TRADING_PERIOD_LENGTH % BATCH_SIZE == 0
 
-    # TRADING_PERIOD_LENGTH must be less than half of the overall data (given even split between training and testing)
-    assert TRADING_PERIOD_LENGTH <= 0.5 * scaled.shape[0]
+    # Ensure TRADING_PERIOD_LENGTH is less than one third of the overall data (for training, testing and cross-agent evaluation)
+    assert TRADING_PERIOD_LENGTH <= 0.33 * AVAILABLE_DATA_LENGTH
 
-    model = LstmAgent.get_model(
-        BATCH_SIZE, x_training_np.shape[1], LSTM_IO_LAYER_UNITS, LSTM_COMPRESSION_LAYER_UNITS)
+    agentType = GruAgent
+
+    model = agentType.get_model(
+        BATCH_SIZE, x_training_np.shape[1], IO_LAYER_UNITS, COMPRESSION_LAYER_UNITS)
 
     # loss_string = "mean_squared_logarithmic_error"
     loss_string = "mean_squared_error"
@@ -166,12 +182,9 @@ def run_training():
 
     model.summary()
 
-    x_testing, y_testing = TrainingDataHelper.get_x_y_data(
-        scaled, scaled.shape[0] - TRADING_PERIOD_LENGTH, TRADING_PERIOD_LENGTH, MinMaxScaler())
-
-    x_testing_np = np.array(x_testing)
-    x_testing_np_reshaped = np.reshape(
-        x_testing_np, (x_testing_np.shape[0], 1, x_testing_np.shape[1]))
+    y_testing, x_testing_np, y_testing_np, x_testing_np_reshaped = TrainingDataHelper.get_and_reshape_data(
+        scaled, TESTING_START_INDEX, TRADING_PERIOD_LENGTH
+    )
 
     use_shuffle = False
 
@@ -179,7 +192,6 @@ def run_training():
                         epochs=EPOCHS,
                         batch_size=BATCH_SIZE,
                         validation_data=(x_testing_np_reshaped, y_testing),
-                        # validation_split=0.5
                         shuffle=use_shuffle,
                         verbose=2,
                         )
@@ -189,7 +201,8 @@ def run_training():
 
     TrainingDataHelper.plot_results(TRAINING_START_INDEX, TRADING_PERIOD_LENGTH,
                                     BATCH_SIZE, EPOCHS,
-                                    LSTM_IO_LAYER_UNITS, LSTM_COMPRESSION_LAYER_UNITS,
+                                    agentType.__name__,
+                                    IO_LAYER_UNITS, COMPRESSION_LAYER_UNITS,
                                     x_training_np_reshaped, y_training,
                                     y_testing, y_predicted_on_testing_set,
                                     model, loss_string, use_shuffle, history)
