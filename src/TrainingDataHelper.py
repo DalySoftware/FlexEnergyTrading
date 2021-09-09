@@ -72,7 +72,7 @@ class TrainingDataHelper:
                      y_testing, y_predicted_on_testing_set,
                      model, loss_string,  use_shuffle, fit_history):
 
-        fig = plt.figure()
+        fig = plt.figure(figsize=[16, 9])
         x_values_for_plot = range(1, TRADING_PERIOD_LENGTH + 1)
 
         training_plot = fig.add_subplot(2, 2, 1)
@@ -121,7 +121,13 @@ class TrainingDataHelper:
                        )
         text_plot.set_title("Parameters")
 
-        plt.show()
+        filename = f"{AGENT_TYPE[:3]} {IO_LAYER_UNITS} {COMPRESSION_LAYER_UNITS} {IO_LAYER_UNITS} {EPOCHS} " + \
+                   f"{TRAINING_START_INDEX} {TRADING_PERIOD_LENGTH} {BATCH_SIZE} {loss_string} {use_shuffle}"
+
+        plt.savefig(
+            f"C:\\Users\\irond\\Documents\\Coding\\FlexEnergyTrading\\other resources\\AgentOutput\\{filename}.pdf",
+            bbox_inches="tight")
+        # plt.show()
 
     @staticmethod
     def get_and_reshape_data(scaled, TRAINING_START_INDEX, TRADING_PERIOD_LENGTH):
@@ -137,7 +143,7 @@ class TrainingDataHelper:
         return y_training, x_training_np, y_training_np, x_training_np_reshaped
 
 
-def run_training():
+def run_training(agent_type, trading_period_length, training_start_index, epochs, batch_size, io_layer_units, compression_layer_units, loss_string):
     data = NaturalGasDataProvider.get_data(True)
 
     scaled = TrainingDataHelper.normalize_data(data)
@@ -146,63 +152,50 @@ def run_training():
     # print(scaled[200:].tail())
     # scaled.to_csv("C:\\temp\\temp.csv")
 
-    TRADING_PERIOD_LENGTH = 1800
-    TRAINING_START_INDEX = 300
-    TESTING_START_INDEX = TRAINING_START_INDEX + TRADING_PERIOD_LENGTH
-    EVALUATION_START_INDEX = TESTING_START_INDEX + TRADING_PERIOD_LENGTH
+    TESTING_START_INDEX = training_start_index + trading_period_length
+    EVALUATION_START_INDEX = TESTING_START_INDEX + trading_period_length
     AVAILABLE_DATA_LENGTH = scaled.shape[0]
 
     print(f'AVAILABLE_DATA_LENGTH: {AVAILABLE_DATA_LENGTH}')
 
     y_training, x_training_np, y_training_np, x_training_np_reshaped = TrainingDataHelper.get_and_reshape_data(
-        scaled, TRAINING_START_INDEX, TRADING_PERIOD_LENGTH
+        scaled, training_start_index, trading_period_length
     )
 
-    EPOCHS = 50
-    BATCH_SIZE = 300
-    IO_LAYER_UNITS = 100
-    COMPRESSION_LAYER_UNITS = 20
-
-    # BATCH_SIZE must divide TRADING_PERIOD_LENGTH with no remainder
-    assert TRADING_PERIOD_LENGTH % BATCH_SIZE == 0
+    # batch_size must divide TRADING_PERIOD_LENGTH with no remainder
+    assert trading_period_length % batch_size == 0
 
     # Ensure TRADING_PERIOD_LENGTH is less than one third of the overall data (for training, testing and cross-agent evaluation)
-    assert TRADING_PERIOD_LENGTH <= 0.33 * AVAILABLE_DATA_LENGTH
+    assert trading_period_length <= 0.33 * AVAILABLE_DATA_LENGTH
 
-    agentType = GruAgent
+    model = agent_type.get_model(
+        batch_size, x_training_np.shape[1], io_layer_units, compression_layer_units)
 
-    model = agentType.get_model(
-        BATCH_SIZE, x_training_np.shape[1], IO_LAYER_UNITS, COMPRESSION_LAYER_UNITS)
-
-    # loss_string = "mean_squared_logarithmic_error"
-    loss_string = "mean_squared_error"
-    # loss_string = "mean_absolute_error"
-    # loss_string = "mean_absolute_percentage_error"
     model.compile(optimizer="adam", loss=loss_string)
 
     model.summary()
 
     y_testing, x_testing_np, y_testing_np, x_testing_np_reshaped = TrainingDataHelper.get_and_reshape_data(
-        scaled, TESTING_START_INDEX, TRADING_PERIOD_LENGTH
+        scaled, TESTING_START_INDEX, trading_period_length
     )
 
     use_shuffle = False
 
     history = model.fit(x_training_np_reshaped, y_training_np,
-                        epochs=EPOCHS,
-                        batch_size=BATCH_SIZE,
+                        epochs=epochs,
+                        batch_size=batch_size,
                         validation_data=(x_testing_np_reshaped, y_testing),
                         shuffle=use_shuffle,
                         verbose=2,
                         )
 
     y_predicted_on_testing_set = model.predict(
-        x_testing_np_reshaped, batch_size=BATCH_SIZE)
+        x_testing_np_reshaped, batch_size=batch_size)
 
-    TrainingDataHelper.plot_results(TRAINING_START_INDEX, TRADING_PERIOD_LENGTH,
-                                    BATCH_SIZE, EPOCHS,
-                                    agentType.__name__,
-                                    IO_LAYER_UNITS, COMPRESSION_LAYER_UNITS,
+    TrainingDataHelper.plot_results(training_start_index, trading_period_length,
+                                    batch_size, epochs,
+                                    agent_type.__name__,
+                                    io_layer_units, compression_layer_units,
                                     x_training_np_reshaped, y_training,
                                     y_testing, y_predicted_on_testing_set,
                                     model, loss_string, use_shuffle, history)
