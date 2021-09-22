@@ -1,5 +1,3 @@
-from LstmAgent import LstmAgent
-from GruAgent import GruAgent
 from pandas.core.series import Series
 from sklearn.preprocessing import MinMaxScaler  # type: ignore
 from NaturalGasDataProvider import NaturalGasDataProvider
@@ -143,7 +141,8 @@ class TrainingDataHelper:
         return y_training, x_training_np, y_training_np, x_training_np_reshaped
 
 
-def run_training(agent_type, trading_period_length, training_start_index, epochs, batch_size, io_layer_units, compression_layer_units, loss_string):
+def run_training(agent_type, trading_period_length, training_start_index, epochs, batch_size,
+                 io_layer_units, compression_layer_units, loss_string, use_shuffle):
     data = NaturalGasDataProvider.get_data(True)
 
     scaled = TrainingDataHelper.normalize_data(data)
@@ -178,8 +177,6 @@ def run_training(agent_type, trading_period_length, training_start_index, epochs
     y_testing, x_testing_np, y_testing_np, x_testing_np_reshaped = TrainingDataHelper.get_and_reshape_data(
         scaled, TESTING_START_INDEX, trading_period_length
     )
-
-    use_shuffle = False
 
     history = model.fit(x_training_np_reshaped, y_training_np,
                         epochs=epochs,
