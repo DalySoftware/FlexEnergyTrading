@@ -1,6 +1,6 @@
 from GruAgent import GruAgent
 from LstmAgent import LstmAgent
-from TrainingDataHelper import run_training
+from TrainingDataHelper import TrainingDataHelper
 
 
 def main():
@@ -12,6 +12,9 @@ def main():
     # loss_string = "mean_absolute_error"
     # loss_string = "mean_absolute_percentage_error"
 
+    run_training = TrainingDataHelper.run_training
+    run_evaluation = TrainingDataHelper.run_evaluation
+
     # run_training(GruAgent, TRADING_PERIOD_LENGTH, TRAINING_START_INDEX,
     #              500, 100, 100, 20, "mean_squared_error", False)
     # run_training(GruAgent, TRADING_PERIOD_LENGTH, TRAINING_START_INDEX,
@@ -603,6 +606,72 @@ def main():
     #              75, 900, 100, 100, "mean_squared_logarithmic_error", True)
     # run_training(LstmAgent, TRADING_PERIOD_LENGTH, TRAINING_START_INDEX,
     #              75, 1800, 100, 100, "mean_squared_logarithmic_error", True)
+
+    # run_training(GruAgent, TRADING_PERIOD_LENGTH, TRAINING_START_INDEX,
+    #              20, 300, 100, 100, "mean_squared_error", True)
+    # run_training(GruAgent, TRADING_PERIOD_LENGTH, TRAINING_START_INDEX,
+    #              20, 300, 100, 20, "mean_squared_error", True)
+    # run_training(GruAgent, TRADING_PERIOD_LENGTH, TRAINING_START_INDEX,
+    #              20, 300, 100, 20, "mean_squared_logarithmic_error", True)
+
+    _, evaluation_overall_start_index = TrainingDataHelper.get_testing_eval_start_indexes(
+        TRADING_PERIOD_LENGTH, TRAINING_START_INDEX)
+
+    # GRU Candidate 1
+    # run_training(GruAgent, TRADING_PERIOD_LENGTH, TRAINING_START_INDEX,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(GruAgent, TRADING_PERIOD_LENGTH, 1800, TRAINING_START_INDEX, evaluation_overall_start_index,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(GruAgent, TRADING_PERIOD_LENGTH, 900, TRAINING_START_INDEX, evaluation_overall_start_index,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(GruAgent, TRADING_PERIOD_LENGTH, 900, TRAINING_START_INDEX, evaluation_overall_start_index + 900,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(GruAgent, TRADING_PERIOD_LENGTH, 600, TRAINING_START_INDEX, evaluation_overall_start_index,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(GruAgent, TRADING_PERIOD_LENGTH, 600, TRAINING_START_INDEX, evaluation_overall_start_index + 600,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(GruAgent, TRADING_PERIOD_LENGTH, 600, TRAINING_START_INDEX, evaluation_overall_start_index + 1200,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(GruAgent, TRADING_PERIOD_LENGTH, 300, TRAINING_START_INDEX, evaluation_overall_start_index,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(GruAgent, TRADING_PERIOD_LENGTH, 300, TRAINING_START_INDEX, evaluation_overall_start_index + 300,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(GruAgent, TRADING_PERIOD_LENGTH, 300, TRAINING_START_INDEX, evaluation_overall_start_index + 600,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(GruAgent, TRADING_PERIOD_LENGTH, 300, TRAINING_START_INDEX, evaluation_overall_start_index + 900,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(GruAgent, TRADING_PERIOD_LENGTH, 300, TRAINING_START_INDEX, evaluation_overall_start_index + 1200,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(GruAgent, TRADING_PERIOD_LENGTH, 300, TRAINING_START_INDEX, evaluation_overall_start_index + 1500,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+
+    # LSTM Candidate 1
+    # run_training(LstmAgent, TRADING_PERIOD_LENGTH, TRAINING_START_INDEX,
+    #              20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    run_evaluation(LstmAgent, TRADING_PERIOD_LENGTH, 1800, TRAINING_START_INDEX, evaluation_overall_start_index,
+                   20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(LstmAgent, TRADING_PERIOD_LENGTH, 900, TRAINING_START_INDEX, evaluation_overall_start_index,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(LstmAgent, TRADING_PERIOD_LENGTH, 900, TRAINING_START_INDEX, evaluation_overall_start_index + 900,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(LstmAgent, TRADING_PERIOD_LENGTH, 600, TRAINING_START_INDEX, evaluation_overall_start_index,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(LstmAgent, TRADING_PERIOD_LENGTH, 600, TRAINING_START_INDEX, evaluation_overall_start_index + 600,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(LstmAgent, TRADING_PERIOD_LENGTH, 600, TRAINING_START_INDEX, evaluation_overall_start_index + 1200,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(LstmAgent, TRADING_PERIOD_LENGTH, 300, TRAINING_START_INDEX, evaluation_overall_start_index,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(LstmAgent, TRADING_PERIOD_LENGTH, 300, TRAINING_START_INDEX, evaluation_overall_start_index + 300,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(LstmAgent, TRADING_PERIOD_LENGTH, 300, TRAINING_START_INDEX, evaluation_overall_start_index + 600,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(LstmAgent, TRADING_PERIOD_LENGTH, 300, TRAINING_START_INDEX, evaluation_overall_start_index + 900,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(LstmAgent, TRADING_PERIOD_LENGTH, 300, TRAINING_START_INDEX, evaluation_overall_start_index + 1200,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
+    # run_evaluation(LstmAgent, TRADING_PERIOD_LENGTH, 300, TRAINING_START_INDEX, evaluation_overall_start_index + 1500,
+    #                20, 300, 100, 100, "mean_squared_logarithmic_error", True)
 
 
 if __name__ == '__main__':
