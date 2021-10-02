@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt  # type: ignore
 
 
-class TrainingDataHelper:
+class NeuralAgentHelper:
     @staticmethod
     def scale_minus_one_to_one(data_frame: DataFrame, column: str):
         result = data_frame.copy()
@@ -35,7 +35,7 @@ class TrainingDataHelper:
         return result
 
     @staticmethod
-    def get_x_y_data(scaled, start_index, length):
+    def get_filtered_data(scaled, start_index, length):
         scaler = MinMaxScaler()
 
         x: DataFrame = scaled[start_index:start_index + length].copy()
@@ -54,7 +54,9 @@ class TrainingDataHelper:
 
         y: DataFrame = x_copy.loc[:, ["DiffFromGlobalMinScaled"]]
 
-        return x, y
+        close_prices = x_copy["Close"]
+
+        return x, y, close_prices
 
     @staticmethod
     def plot_results(TRAINING_START_INDEX, validation_start_index,
@@ -147,9 +149,9 @@ class TrainingDataHelper:
             plt.show()
 
     @staticmethod
-    def get_and_reshape_data(scaled, TRAINING_START_INDEX, TRADING_PERIOD_LENGTH):
-        x_training, y_training = TrainingDataHelper.get_x_y_data(
-            scaled, TRAINING_START_INDEX, TRADING_PERIOD_LENGTH)
+    def filter_and_reshape_data(scaled_data, TRAINING_START_INDEX, TRADING_PERIOD_LENGTH):
+        x_training, y_training, close_prices = NeuralAgentHelper.get_filtered_data(
+            scaled_data, TRAINING_START_INDEX, TRADING_PERIOD_LENGTH)
 
         x_training_np = np.array(x_training)
         y_training_np = np.array(y_training)
@@ -157,7 +159,7 @@ class TrainingDataHelper:
         x_training_np_reshaped = np.reshape(
             x_training_np, (x_training_np.shape[0], 1, x_training_np.shape[1]))
 
-        return y_training, x_training_np, y_training_np, x_training_np_reshaped
+        return y_training, x_training_np, y_training_np, x_training_np_reshaped, close_prices
 
     @staticmethod
     def get_testing_eval_start_indexes(trading_period_length, training_start_index):
@@ -170,15 +172,15 @@ class TrainingDataHelper:
                      io_layer_units, compression_layer_units, loss_string, use_shuffle):
         data = NaturalGasDataProvider.get_data(True)
 
-        scaled = TrainingDataHelper.normalize_data(data)
+        scaled = NeuralAgentHelper.normalize_data(data)
 
-        testing_start_index, _ = TrainingDataHelper.get_testing_eval_start_indexes(
+        testing_start_index, _ = NeuralAgentHelper.get_testing_eval_start_indexes(
             trading_period_length, training_start_index)
         AVAILABLE_DATA_LENGTH = scaled.shape[0]
 
         print(f'AVAILABLE_DATA_LENGTH: {AVAILABLE_DATA_LENGTH}')
 
-        y_training, x_training_np, y_training_np, x_training_np_reshaped = TrainingDataHelper.get_and_reshape_data(
+        y_training, x_training_np, y_training_np, x_training_np_reshaped = NeuralAgentHelper.filter_and_reshape_data(
             scaled, training_start_index, trading_period_length
         )
 
@@ -195,7 +197,7 @@ class TrainingDataHelper:
 
         model.summary()
 
-        y_testing, _, _, x_testing_np_reshaped = TrainingDataHelper.get_and_reshape_data(
+        y_testing, _, _, x_testing_np_reshaped, _ = NeuralAgentHelper.filter_and_reshape_data(
             scaled, testing_start_index, trading_period_length
         )
 
@@ -210,24 +212,24 @@ class TrainingDataHelper:
         y_predicted_on_testing_set = model.predict(
             x_testing_np_reshaped, batch_size=batch_size)
 
-        TrainingDataHelper.plot_results(training_start_index, testing_start_index,
-                                        trading_period_length, trading_period_length,
-                                        batch_size, epochs,
-                                        agent_type.__name__,
-                                        io_layer_units, compression_layer_units,
-                                        x_training_np_reshaped, y_training,
-                                        y_testing, y_predicted_on_testing_set,
-                                        model, loss_string, use_shuffle, history,
-                                        'save', 'testing')
+        NeuralAgentHelper.plot_results(training_start_index, testing_start_index,
+                                       trading_period_length, trading_period_length,
+                                       batch_size, epochs,
+                                       agent_type.__name__,
+                                       io_layer_units, compression_layer_units,
+                                       x_training_np_reshaped, y_training,
+                                       y_testing, y_predicted_on_testing_set,
+                                       model, loss_string, use_shuffle, history,
+                                       'save', 'testing')
 
     @staticmethod
     def run_evaluation(agent_type, training_period_length, eval_period_length, training_start_index, evaluation_start_index, epochs, batch_size,
                        io_layer_units, compression_layer_units, loss_string, use_shuffle):
         data = NaturalGasDataProvider.get_data(True)
 
-        scaled = TrainingDataHelper.normalize_data(data)
+        scaled = NeuralAgentHelper.normalize_data(data)
 
-        y_training, x_training_np, y_training_np, x_training_np_reshaped = TrainingDataHelper.get_and_reshape_data(
+        y_training, x_training_np, y_training_np, x_training_np_reshaped, _ = NeuralAgentHelper.filter_and_reshape_data(
             scaled, training_start_index, training_period_length
         )
 
@@ -238,7 +240,7 @@ class TrainingDataHelper:
 
         model.summary()
 
-        y_evaluation, _, _, x_evaluation_np_reshaped = TrainingDataHelper.get_and_reshape_data(
+        y_evaluation, _, _, x_evaluation_np_reshaped, eval_close_prices = NeuralAgentHelper.filter_and_reshape_data(
             scaled, evaluation_start_index, eval_period_length
         )
 
@@ -254,14 +256,16 @@ class TrainingDataHelper:
         y_predicted_on_evaluation_set = model.predict(
             x_evaluation_np_reshaped, batch_size=batch_size)
 
-        TrainingDataHelper.plot_results(training_start_index, evaluation_start_index,
-                                        training_period_length, eval_period_length,
-                                        batch_size, epochs,
-                                        agent_type.__name__,
-                                        io_layer_units, compression_layer_units,
-                                        x_training_np_reshaped, y_training,
-                                        y_evaluation, y_predicted_on_evaluation_set,
-                                        model, loss_string, use_shuffle, history,
-                                        'save', 'eval')
+        mode = ""
+        if mode:
+            NeuralAgentHelper.plot_results(training_start_index, evaluation_start_index,
+                                           training_period_length, eval_period_length,
+                                           batch_size, epochs,
+                                           agent_type.__name__,
+                                           io_layer_units, compression_layer_units,
+                                           x_training_np_reshaped, y_training,
+                                           y_evaluation, y_predicted_on_evaluation_set,
+                                           model, loss_string, use_shuffle, history,
+                                           mode, 'eval')
 
-        return y_predicted_on_evaluation_set, history
+        return y_predicted_on_evaluation_set, eval_close_prices, history
