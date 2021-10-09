@@ -6,15 +6,15 @@ TOTAL_VOLUME = 1
 
 class PerfectKnowledgeAgent:
     @staticmethod
-    def get_trade_performance(eval_period_length, evaluation_start_index):
+    def get_trade_performance(test_period_length, test_start_index):
         data = NaturalGasDataProvider.get_data(True)
         scaled = NeuralAgentHelper.normalize_data(data)
 
-        y_evaluation, _, _, x_evaluation_np_reshaped, eval_close_prices = NeuralAgentHelper.filter_and_reshape_data(
-            scaled, evaluation_start_index, eval_period_length
+        y_testing, _, _, x_testing_np_reshaped, test_close_prices = NeuralAgentHelper.filter_and_reshape_data(
+            scaled, test_start_index, test_period_length
         )
 
-        min_price = eval_close_prices.min()
+        min_price = test_close_prices.min()
 
         hedged_volume = TOTAL_VOLUME
         total_cost = hedged_volume * min_price

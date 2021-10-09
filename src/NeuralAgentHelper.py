@@ -59,28 +59,28 @@ class NeuralAgentHelper:
         return x, y, close_prices
 
     @staticmethod
-    def plot_results(TRAINING_START_INDEX, validation_start_index,
-                     TRADING_PERIOD_LENGTH, validation_period_length,
+    def plot_results(TRAINING_START_INDEX, test_start_index,
+                     TRADING_PERIOD_LENGTH, test_period_length,
                      BATCH_SIZE, EPOCHS, AGENT_TYPE,
                      IO_LAYER_UNITS, COMPRESSION_LAYER_UNITS,
                      x_training_np_reshaped, y_training,
-                     y_testing, y_predicted_on_testing_set,
+                     y_validation, y_predicted_on_validation_set,
                      model, loss_string,  use_shuffle, fit_history,
                      mode, type):
 
-        if type == "testing":
+        if type == "vali":
+            type_str = "Validation"
+        elif type == "test":
             type_str = "Testing"
-        elif type == "eval":
-            type_str = "Evaluation"
 
         final_validation_loss = fit_history.history["val_loss"][-1]
 
         fig = plt.figure(figsize=[16, 9])
         x_values_for_training_plot = range(1, TRADING_PERIOD_LENGTH + 1)
-        x_values_for_test_plot = range(1, validation_period_length + 1)
+        x_values_for_validation_plot = range(1, test_period_length + 1)
 
         training_plot = fig.add_subplot(2, 2, 1)
-        testing_plot = fig.add_subplot(2, 2, 2)
+        validation_plot = fig.add_subplot(2, 2, 2)
         convergence_plot = fig.add_subplot(2, 2, 3)
         text_plot = fig.add_subplot(2, 2, 4)
 
@@ -95,11 +95,11 @@ class NeuralAgentHelper:
         training_plot.legend(["Actual", "Predicted"], loc="upper left")
 
         # types: ignore
-        testing_plot.plot(x_values_for_test_plot, y_testing,
-                          x_values_for_test_plot, y_predicted_on_testing_set)
-        testing_plot.set_xlabel("Day")
-        testing_plot.set_title(f"{type_str} Data")
-        testing_plot.legend(["Actual", "Predicted"], loc="upper left")
+        validation_plot.plot(x_values_for_validation_plot, y_validation,
+                             x_values_for_validation_plot, y_predicted_on_validation_set)
+        validation_plot.set_xlabel("Day")
+        validation_plot.set_title(f"{type_str} Data")
+        validation_plot.legend(["Actual", "Predicted"], loc="upper left")
 
         # types: ignore
         convergence_plot.plot(fit_history.history["loss"])
@@ -109,7 +109,7 @@ class NeuralAgentHelper:
         convergence_plot.set_xlabel("Epoch")
         convergence_plot.legend(["Training", type_str], loc="upper left")
 
-        if type == "testing":
+        if type == "vali":
             info_text = f"\nAgent Type: {AGENT_TYPE}" + \
                         f"\nUnits Layer 1: {IO_LAYER_UNITS}" + \
                         f"\nUnits Layer 2: {COMPRESSION_LAYER_UNITS}" + \
@@ -121,10 +121,10 @@ class NeuralAgentHelper:
                         f"\nLoss Function: {loss_string}" + \
                         f"\nShuffle: {use_shuffle}"
 
-        elif type == "eval":
+        elif type == "test":
             info_text = f"\nAgent Type: {AGENT_TYPE}" + \
-                        f"\nEvaluation Period Length: {validation_period_length}" + \
-                        f"\nEvaluation Start Index: {validation_start_index}" + \
+                        f"\nTesting Period Length: {test_period_length}" + \
+                        f"\nTesting Start Index: {test_start_index}" + \
                         f"\nFinal {type_str} Loss: {round(final_validation_loss, 2)}"
 
         text_plot.text(0.5, 0.5, info_text,
@@ -132,11 +132,11 @@ class NeuralAgentHelper:
                        )
         text_plot.set_title("Parameters")
 
-        if type == "testing":
+        if type == "vali":
             filename = f"{AGENT_TYPE[:3]} {IO_LAYER_UNITS} {COMPRESSION_LAYER_UNITS} {IO_LAYER_UNITS} {EPOCHS} " + \
                        f"{TRAINING_START_INDEX} {TRADING_PERIOD_LENGTH} {BATCH_SIZE} {loss_string} {use_shuffle}"
-        elif type == "eval":
-            filename = f"{AGENT_TYPE} {validation_period_length} {validation_start_index}"
+        elif type == "test":
+            filename = f"{AGENT_TYPE} {test_period_length} {test_start_index}"
 
         print(filename)
 
@@ -162,10 +162,10 @@ class NeuralAgentHelper:
         return y_training, x_training_np, y_training_np, x_training_np_reshaped, close_prices
 
     @staticmethod
-    def get_testing_eval_start_indexes(trading_period_length, training_start_index):
-        testing_start_index = training_start_index + trading_period_length
-        evaluation_start_index = testing_start_index + trading_period_length
-        return (testing_start_index, evaluation_start_index)
+    def get_vali_testing_start_indexes(trading_period_length, training_start_index):
+        vali_start_index = training_start_index + trading_period_length
+        testing_start_index = vali_start_index + trading_period_length
+        return (vali_start_index, testing_start_index)
 
     @staticmethod
     def run_training(agent_type, trading_period_length, training_start_index, epochs, batch_size,
@@ -174,20 +174,20 @@ class NeuralAgentHelper:
 
         scaled = NeuralAgentHelper.normalize_data(data)
 
-        testing_start_index, _ = NeuralAgentHelper.get_testing_eval_start_indexes(
+        vali_start_index, _ = NeuralAgentHelper.get_vali_testing_start_indexes(
             trading_period_length, training_start_index)
         AVAILABLE_DATA_LENGTH = scaled.shape[0]
 
         print(f'AVAILABLE_DATA_LENGTH: {AVAILABLE_DATA_LENGTH}')
 
-        y_training, x_training_np, y_training_np, x_training_np_reshaped = NeuralAgentHelper.filter_and_reshape_data(
+        y_training, x_training_np, y_training_np, x_training_np_reshaped, _ = NeuralAgentHelper.filter_and_reshape_data(
             scaled, training_start_index, trading_period_length
         )
 
         # batch_size must divide TRADING_PERIOD_LENGTH with no remainder
         assert trading_period_length % batch_size == 0
 
-        # Ensure TRADING_PERIOD_LENGTH is less than one third of the overall data (for training, testing and cross-agent evaluation)
+        # Ensure TRADING_PERIOD_LENGTH is less than one third of the overall data (for training, validation and cross-agent testing)
         assert trading_period_length <= 0.33 * AVAILABLE_DATA_LENGTH
 
         model = agent_type.get_model(
@@ -197,34 +197,35 @@ class NeuralAgentHelper:
 
         model.summary()
 
-        y_testing, _, _, x_testing_np_reshaped, _ = NeuralAgentHelper.filter_and_reshape_data(
-            scaled, testing_start_index, trading_period_length
+        y_validation, _, _, x_validation_np_reshaped, _ = NeuralAgentHelper.filter_and_reshape_data(
+            scaled, vali_start_index, trading_period_length
         )
 
         history = model.fit(x_training_np_reshaped, y_training_np,
                             epochs=epochs,
                             batch_size=batch_size,
-                            validation_data=(x_testing_np_reshaped, y_testing),
+                            validation_data=(
+                                x_validation_np_reshaped, y_validation),
                             shuffle=use_shuffle,
                             verbose=2,
                             )
 
-        y_predicted_on_testing_set = model.predict(
-            x_testing_np_reshaped, batch_size=batch_size)
+        y_predicted_on_validation_set = model.predict(
+            x_validation_np_reshaped, batch_size=batch_size)
 
-        NeuralAgentHelper.plot_results(training_start_index, testing_start_index,
+        NeuralAgentHelper.plot_results(training_start_index, vali_start_index,
                                        trading_period_length, trading_period_length,
                                        batch_size, epochs,
                                        agent_type.__name__,
                                        io_layer_units, compression_layer_units,
                                        x_training_np_reshaped, y_training,
-                                       y_testing, y_predicted_on_testing_set,
+                                       y_validation, y_predicted_on_validation_set,
                                        model, loss_string, use_shuffle, history,
-                                       'save', 'testing')
+                                       'save', 'vali')
 
     @staticmethod
-    def run_evaluation(agent_type, training_period_length, eval_period_length, training_start_index, evaluation_start_index, epochs, batch_size,
-                       io_layer_units, compression_layer_units, loss_string, use_shuffle):
+    def run_testing(agent_type, training_period_length, test_period_length, training_start_index, test_start_index, epochs, batch_size,
+                    io_layer_units, compression_layer_units, loss_string, use_shuffle):
         data = NaturalGasDataProvider.get_data(True)
 
         scaled = NeuralAgentHelper.normalize_data(data)
@@ -240,32 +241,32 @@ class NeuralAgentHelper:
 
         model.summary()
 
-        y_evaluation, _, _, x_evaluation_np_reshaped, eval_close_prices = NeuralAgentHelper.filter_and_reshape_data(
-            scaled, evaluation_start_index, eval_period_length
+        y_testing, _, _, x_testing_np_reshaped, test_close_prices = NeuralAgentHelper.filter_and_reshape_data(
+            scaled, test_start_index, test_period_length
         )
 
         history = model.fit(x_training_np_reshaped, y_training_np,
                             epochs=epochs,
                             batch_size=batch_size,
                             validation_data=(
-                                x_evaluation_np_reshaped, y_evaluation),
+                                x_testing_np_reshaped, y_testing),
                             shuffle=use_shuffle,
                             verbose=2,
                             )
 
-        y_predicted_on_evaluation_set = model.predict(
-            x_evaluation_np_reshaped, batch_size=batch_size)
+        y_predicted_on_testing_set = model.predict(
+            x_testing_np_reshaped, batch_size=batch_size)
 
         mode = ""
         if mode:
-            NeuralAgentHelper.plot_results(training_start_index, evaluation_start_index,
-                                           training_period_length, eval_period_length,
+            NeuralAgentHelper.plot_results(training_start_index, test_start_index,
+                                           training_period_length, test_period_length,
                                            batch_size, epochs,
                                            agent_type.__name__,
                                            io_layer_units, compression_layer_units,
                                            x_training_np_reshaped, y_training,
-                                           y_evaluation, y_predicted_on_evaluation_set,
+                                           y_testing, y_predicted_on_testing_set,
                                            model, loss_string, use_shuffle, history,
-                                           mode, 'eval')
+                                           mode, 'test')
 
-        return y_predicted_on_evaluation_set, eval_close_prices, history
+        return y_predicted_on_testing_set, test_close_prices, history

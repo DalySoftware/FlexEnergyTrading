@@ -35,15 +35,15 @@ class LstmAgent:
         return prediction_model
 
     @staticmethod
-    def run_evaluation(agent_type, training_period_length, eval_period_length, training_start_index, evaluation_start_index, epochs, batch_size,
-                       io_layer_units, compression_layer_units, loss_string, use_shuffle):
-        return NeuralAgentHelper.run_evaluation(agent_type, training_period_length, eval_period_length, training_start_index, evaluation_start_index, epochs, batch_size,
-                                                io_layer_units, compression_layer_units, loss_string, use_shuffle)
+    def run_testing(agent_type, training_period_length, test_period_length, training_start_index, test_start_index, epochs, batch_size,
+                    io_layer_units, compression_layer_units, loss_string, use_shuffle):
+        return NeuralAgentHelper.run_testing(agent_type, training_period_length, test_period_length, training_start_index, test_start_index, epochs, batch_size,
+                                             io_layer_units, compression_layer_units, loss_string, use_shuffle)
 
     @staticmethod
-    def get_trade_performance(eval_period_length, evaluation_start_index):
-        y_predicted, close_prices, history = LstmAgent.run_evaluation(LstmAgent, TRAINING_PERIOD_LENGTH, eval_period_length, TRAINING_START_INDEX, evaluation_start_index,
-                                                                      EPOCHS, BATCH_SIZE, IO_LAYER_UNITS, COMPRESSION_LAYER_UNITS, LOSS_STRING, SHUFFLE)
+    def get_trade_performance(test_period_length, test_start_index):
+        y_predicted, close_prices, history = LstmAgent.run_testing(LstmAgent, TRAINING_PERIOD_LENGTH, test_period_length, TRAINING_START_INDEX, test_start_index,
+                                                                   EPOCHS, BATCH_SIZE, IO_LAYER_UNITS, COMPRESSION_LAYER_UNITS, LOSS_STRING, SHUFFLE)
 
         y_predicted_vector = [y[0] for y in y_predicted]
 
